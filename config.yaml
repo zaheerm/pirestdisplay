@@ -1,0 +1,6 @@
+mqtt:
+  server: "tcp://test.mosquitto.org:1883"
+  topic: "your/topic"
+  username: "your_username"
+  password: "your_password"
+
