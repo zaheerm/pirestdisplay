@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -33,20 +33,25 @@ var messagePubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Me
 
 var connectHandler MQTT.OnConnectHandler = func(client MQTT.Client) {
 	fmt.Println("Connected")
+	// Publishing a message upon connection
+	token := client.Publish(config.MQTT.Topic, 0, false, "Display ready to be activated")
+	token.Wait()
+	fmt.Println("Published message to topic:", config.MQTT.Topic)
 }
 
 var connectLostHandler MQTT.ConnectionLostHandler = func(client MQTT.Client, err error) {
 	fmt.Printf("Connect lost: %v", err)
 }
 
+var config Config
+
 func main() {
 	// Reading the YAML configuration file
-	configFile, err := ioutil.ReadFile("config.yaml")
+	configFile, err := os.ReadFile("config.yaml")
 	if err != nil {
 		panic(err)
 	}
 
-	var config Config
 	err = yaml.Unmarshal(configFile, &config)
 	if err != nil {
 		panic(err)
