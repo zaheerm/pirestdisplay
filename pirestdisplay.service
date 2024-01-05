@@ -1,0 +1,13 @@
+[Unit]
+Description=pirestdisplay
+After=network.target
+
+[Service]
+Type=simple
+User=zaheer
+ExecStart=/usr/bin/activatedisplay_linux_arm64
+WorkingDirectory=/etc/pirestdisplay
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
