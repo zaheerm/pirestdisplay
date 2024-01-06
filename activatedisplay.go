@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -22,9 +23,14 @@ var messagePubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Me
 	fmt.Printf("Received message: %s from topic: %s\n", msg.Payload(), msg.Topic())
 	if string(msg.Payload()) == "activate" {
 		cmd := exec.Command("xset", "dpms", "force", "on")
+		cmd.Env = append(os.Environ(), "DISPLAY=:0")
+		var stdoutBuf, stderrBuf bytes.Buffer
+		cmd.Stdout = &stdoutBuf
+		cmd.Stderr = &stderrBuf
 		err := cmd.Run()
 		if err != nil {
 			fmt.Println("Error executing command:", err)
+			fmt.Println("Stderr: ", stderrBuf.String())
 		} else {
 			fmt.Println("Display activated")
 		}
@@ -37,6 +43,9 @@ var connectHandler MQTT.OnConnectHandler = func(client MQTT.Client) {
 	token := client.Publish(config.MQTT.Topic, 0, false, "Display ready to be activated")
 	token.Wait()
 	fmt.Println("Published message to topic:", config.MQTT.Topic)
+	token = client.Subscribe(config.MQTT.Topic, 1, nil)
+	token.Wait()
+	fmt.Printf("Subscribed to topic: %s\n", config.MQTT.Topic)
 }
 
 var connectLostHandler MQTT.ConnectionLostHandler = func(client MQTT.Client, err error) {
@@ -71,10 +80,6 @@ func main() {
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
-
-	token := client.Subscribe(config.MQTT.Topic, 1, nil)
-	token.Wait()
-	fmt.Printf("Subscribed to topic: %s\n", config.MQTT.Topic)
 
 	select {}
 }
