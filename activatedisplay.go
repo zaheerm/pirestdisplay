@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"gopkg.in/yaml.v2"
@@ -77,8 +78,35 @@ func main() {
 	opts.OnConnectionLost = connectLostHandler
 
 	client := MQTT.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		panic(token.Error())
+	// Exponential backoff configuration
+	maxRetries := 500
+	retryCount := 0
+	backoff := 1 * time.Second // Initial backoff duration
+	maxBackoff := 32 * time.Second
+	backoffFactor := 2
+
+	fmt.Printf("Connect to MQTT server: %v with username: %v\n", config.MQTT.Server, config.MQTT.Username)
+
+	for {
+		if token := client.Connect(); token.Wait() && token.Error() != nil {
+			fmt.Printf("Failed to connect: %v\n", token.Error())
+
+			if retryCount >= maxRetries {
+				fmt.Println("Max retries reached, stopping.")
+				break
+			}
+
+			fmt.Printf("Retrying in %v...\n", backoff)
+			time.Sleep(backoff)
+			retryCount++
+			backoff *= time.Duration(backoffFactor)
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+		} else {
+			fmt.Println("Connected to MQTT broker.")
+			break // Successfully connected
+		}
 	}
 
 	select {}
