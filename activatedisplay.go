@@ -23,12 +23,26 @@ type Config struct {
 var messagePubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 	fmt.Printf("Received message: %s from topic: %s\n", msg.Payload(), msg.Topic())
 	if string(msg.Payload()) == "activate" {
-		cmd := exec.Command("xset", "dpms", "force", "on")
+		cmd := exec.Command(
+			"xdotool", "search", "--onlyvisible", "--class", "chromium", "windowfocus",
+			"key", "ctrl+r",
+		)
 		cmd.Env = append(os.Environ(), "DISPLAY=:0")
 		var stdoutBuf, stderrBuf bytes.Buffer
 		cmd.Stdout = &stdoutBuf
 		cmd.Stderr = &stderrBuf
 		err := cmd.Run()
+		if err != nil {
+			fmt.Println("Error executing command:", err)
+			fmt.Println("Stderr: ", stderrBuf.String())
+		} else {
+			fmt.Println("Browser refreshed")
+		}
+		cmd = exec.Command("xset", "dpms", "force", "on")
+		cmd.Env = append(os.Environ(), "DISPLAY=:0")
+		cmd.Stdout = &stdoutBuf
+		cmd.Stderr = &stderrBuf
+		err = cmd.Run()
 		if err != nil {
 			fmt.Println("Error executing command:", err)
 			fmt.Println("Stderr: ", stderrBuf.String())
